@@ -57,7 +57,7 @@ class Header extends JsonFile
         $user->setName($fullname_header);
         $existing_user = $this->add($user, ""); // Password isn't used
         $this->store($existing_user);
-        // $this->session->set(self::SESSION_HASH, $existing_user['password'].$u['permissions'].$u['homedir'].$u['role']);
+        $this->session->set(self::SESSION_HASH, $existing_user['password'].$u['permissions'].$u['homedir'].$u['role']);
         
         return true;
     }
