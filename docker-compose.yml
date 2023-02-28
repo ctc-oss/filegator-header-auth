@@ -1,0 +1,13 @@
+version: '2.2'
+
+services:
+
+  filegator:
+    image: filegator/filegator:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - ./backend/Services/Auth/Adapters/Header.php:/var/www/filegator/backend/Services/Auth/Adapters/Header.php
+      - ./configuration.php:/var/www/filegator/configuration.php
+      # - ./configuration-original.php:/var/www/filegator/configuration.php
+      - ./private/users.json:/var/www/filegator/private/users.json

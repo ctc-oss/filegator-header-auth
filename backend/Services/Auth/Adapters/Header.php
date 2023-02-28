@@ -1,74 +1,104 @@
 <?php
 
 /*
- * This file is part of the FileGator package.
- *
- * (c) Adriano Hänggli <https://github.com/ahaenggli>
- *
+ * This is a custom auth handler that will receive headers for the username and fullname
+ * If the headers are missing, login will fail.
+ * If the headers are present, login will succeed, and user will be added.
  */
-
 namespace Filegator\Services\Auth\Adapters;
 
 use Filegator\Services\Auth\Adapters\JsonFile;
-use Filegator\Services\Auth\AuthInterface;
 use Filegator\Services\Auth\User;
-use Filegator\Services\Auth\UsersCollection;
-use Filegator\Services\Service;
-use Filegator\Services\Session\SessionStorageInterface as Session;
 
-/**
- * @codeCoverageIgnore
- */
 class Header extends JsonFile
 {
-    protected $session;
     protected $username_header_key;
     protected $fullname_header_key;
     protected $email_header_key;
+    protected $non_header_users;
     
-    public function __construct(Session $session)
-    {
-        $this->session = $session;
-    }
-
     public function init(array $config = [])
     {
         parent::init($config);
-        $this->username_header_key = strtolower($config['username_header_key']);
-        $this->fullname_header_key = strtolower($config['fullname_header_key']);
-        $this->email_header_key = strtolower($config['email_header_key']);
+        $this->username_header_key = strtolower($config["username_header_key"]);
+        $this->fullname_header_key = strtolower($config["fullname_header_key"]);
+        $this->email_header_key = strtolower($config["email_header_key"]);
+        $this->ignore_users = $config["ignore_users"] ?? [];
     }
 
-    public function authenticate($username, $password): bool
+    private function useNormalAuth($username): bool
+    {
+        return in_array($username, $this->ignore_users);
+    }
+
+    private function headerUser(): array
     {
         $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+        $header_username_exists = array_key_exists($this->username_header_key, $headers);
+        $header_fullname_exists = array_key_exists($this->fullname_header_key, $headers);
+
+        if (!$header_username_exists) {
+            error_log(print_r($this->username_header_key." header is not set", true));
+        }
+        if (!$header_fullname_exists) {
+            error_log(print_r($this->fullname_header_key." header is not set", true));
+        }
+        if (!$header_username_exists || !$header_fullname_exists) return null;
 
         $username_header = $headers[$this->username_header_key];
         $fullname_header = $headers[$this->fullname_header_key];
 
-        if(!isset($username_header) || empty($username_header)) return false;
-        if(!isset($fullname_header) || empty($fullname_header)) return false;
+        if(!isset($username_header) || empty($username_header)) return null;
+        if(!isset($fullname_header) || empty($fullname_header)) return null;
 
-        $existing_user = $this->find($username_header);
-        if (isset($existing_user)) return true;
+        return [
+            "username" => $username_header,
+            "name" => $fullname_header,
+            "role" => "user",
+            "homedir" => "/",
+            "permissions" => "read",
+        ];
+    }
 
-        $new_user = new User();
-        $user->setUsername($username_header);
-        $user->setName($fullname_header);
-        $existing_user = $this->add($user, ""); // Password isn't used
+    private function userHash($user): string
+    {
+        return $user->getHomedir().$user->getRole().$user->getUsername();
+    }
+
+    public function authenticate($username, $password): bool
+    {
+        if ($this->useNormalAuth($username)) {
+            error_log(print_r("** ".$username." user is configured to use normal authentication, skipping header auth", true));
+            return parent::authenticate($username, $password);
+        }
+
+        $header_user = $this->headerUser();
+        if (!isset($header_user)) return false;
+
+        $existing_user = $this->find($header_user["username"]);
+        if (!isset($existing_user)) {
+            $new_user = $this->mapToUserObject($header_user);
+            $existing_user = $this->add($new_user, ""); // Password isn't used
+        }
+
         $this->store($existing_user);
-        $this->session->set(self::SESSION_HASH, $existing_user['password'].$u['permissions'].$u['homedir'].$u['role']);
-        
+        $this->session->set(self::SESSION_HASH, $this->userHash($existing_user));
         return true;
     }
 
-    protected function mapToUserObject(array $user): User
+    public function user(): ?User
     {
-        $new = new User();
+        if (! $this->session) return null;
+        
+        $user = $this->session->get(self::SESSION_KEY, null);
+        if (! $user) return null;
 
-        $new->setUsername($user['username']);
-        $new->setName($user['name']);
+        if ($this->useNormalAuth($user->getUsername())) return parent::user();
 
-        return $new;
+        $existing_user = $this->find($user->getUsername());
+        if (! $existing_user) return null;
+
+        $hash = $this->session->get(self::SESSION_HASH, null);
+        return ($hash == $this->userHash($existing_user)) ? $user : null;
     }
 }
