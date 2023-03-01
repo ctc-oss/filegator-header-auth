@@ -108,7 +108,6 @@ return [
               'file' => __DIR__.'/private/users.json',
               'username_header_key' => 'FILEGATOR-USERNAME',
               'fullname_header_key' => 'FILEGATOR-FULLNAME',
-              'email_header_key' => 'FILEGATOR-EMAIL',
               'ignore_users' => ['admin'],
           ],
         ],

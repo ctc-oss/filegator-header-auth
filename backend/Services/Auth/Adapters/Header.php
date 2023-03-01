@@ -14,7 +14,6 @@ class Header extends JsonFile
 {
     protected $username_header_key;
     protected $fullname_header_key;
-    protected $email_header_key;
     protected $non_header_users;
     
     public function init(array $config = [])
@@ -22,7 +21,6 @@ class Header extends JsonFile
         parent::init($config);
         $this->username_header_key = strtolower($config["username_header_key"]);
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
-        $this->email_header_key = strtolower($config["email_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
     }
 
