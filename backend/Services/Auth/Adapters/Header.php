@@ -15,6 +15,7 @@ class Header extends JsonFile
     protected $username_header_key;
     protected $fullname_header_key;
     protected $non_header_users;
+    protected $user_defaults;
     
     public function init(array $config = [])
     {
@@ -22,6 +23,7 @@ class Header extends JsonFile
         $this->username_header_key = strtolower($config["username_header_key"]);
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
+        $this->user_defaults = $config["user_defaults"] ?? [];
     }
 
     private function useNormalAuth($username): bool
@@ -52,9 +54,9 @@ class Header extends JsonFile
         return [
             "username" => $username_header,
             "name" => $fullname_header,
-            "role" => "user",
-            "homedir" => "/",
-            "permissions" => "read",
+            "role" => $this->user_defaults["role"] ?? "user",
+            "homedir" => $this->user_defaults["homedir"] ?? "/share",
+            "permissions" => $this->user_defaults["permissions"] ?? "read",
         ];
     }
 

@@ -109,6 +109,13 @@ return [
               'username_header_key' => 'FILEGATOR-USERNAME',
               'fullname_header_key' => 'FILEGATOR-FULLNAME',
               'ignore_users' => ['admin'],
+              'user_defaults' => [
+                'role' => 'user',
+                'homedir' => '/share',
+                // Pipe-delimited list of the following items:
+                // read|write|upload|download|batchdownload|zip
+                'permissions' => 'read',
+              ]
           ],
         ],
         'Filegator\Services\Router\Router' => [
