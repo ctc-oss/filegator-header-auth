@@ -31,6 +31,7 @@ class Header extends JsonFile
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
         $this->user_defaults = $config["user_defaults"] ?? [];
+        $this->logger->log(implode("--", $this));
 
     }
 
@@ -41,8 +42,10 @@ class Header extends JsonFile
 
     private function headerUser(): array
     {
-        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
-        $this->logger->log(implode(" ", $headers));
+        $this->logger->log(implode("::", getallheaders()));
+        $headers = getallheaders();
+        array_change_key_case($headers, CASE_LOWER);
+        $this->logger->log(implode("++", $headers));
         $header_username_exists = array_key_exists($this->username_header_key, $headers);
         $header_fullname_exists = array_key_exists($this->fullname_header_key, $headers);
 
