@@ -26,7 +26,7 @@ class Header extends JsonFile
     public function init(array $config = [])
     {
         parent::init($config);
-        $this->logger->log("INIT THE HEADER AUTH: ".$config["username_header_key"]);
+        $this->logger->debug("INIT THE HEADER AUTH: ".$config["username_header_key"]);
         $this->username_header_key = strtolower($config["username_header_key"]);
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
@@ -42,19 +42,22 @@ class Header extends JsonFile
     private function headerUser(): array
     {
         $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+        $this->logger->debug($headers);
         $header_username_exists = array_key_exists($this->username_header_key, $headers);
         $header_fullname_exists = array_key_exists($this->fullname_header_key, $headers);
 
         if (!$header_username_exists) {
-            error_log(print_r($this->username_header_key." header is not set", true));
+            $this->logger->error(print_r($this->username_header_key." header is not set", true));
         }
         if (!$header_fullname_exists) {
-            error_log(print_r($this->fullname_header_key." header is not set", true));
+            $this->logger->error(print_r($this->fullname_header_key." header is not set", true));
         }
         if (!$header_username_exists || !$header_fullname_exists) return null;
 
         $username_header = $headers[$this->username_header_key];
         $fullname_header = $headers[$this->fullname_header_key];
+        $this->logger->error("USERNAME: ".$username_header);
+        $this->logger->error("FULLNAME: ".$fullname_header);
 
         if(!isset($username_header) || empty($username_header)) return null;
         if(!isset($fullname_header) || empty($fullname_header)) return null;
@@ -76,7 +79,7 @@ class Header extends JsonFile
     public function authenticate($username, $password): bool
     {
         if ($this->useNormalAuth($username)) {
-            error_log(print_r("** ".$username." user is configured to use normal authentication, skipping header auth", true));
+            $this->logger->info(print_r("** ".$username." user is configured to use normal authentication, skipping header auth", true));
             return parent::authenticate($username, $password);
         }
 
