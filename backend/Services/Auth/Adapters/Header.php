@@ -41,7 +41,7 @@ class Header extends JsonFile
     private function headerUser(): array
     {
         $this->logger->log(implode("::", getallheaders()));
-        $headers = getallheaders();
+        $headers = getallheaders()->getArrayCopy();
         array_change_key_case($headers, CASE_LOWER);
         $this->logger->log(implode("++", $headers));
         $header_username_exists = array_key_exists($this->username_header_key, $headers);
