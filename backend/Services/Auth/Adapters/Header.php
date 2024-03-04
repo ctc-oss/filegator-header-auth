@@ -26,9 +26,8 @@ class Header extends JsonFile
     public function init(array $config = [])
     {
         parent::init($config);
-        $this->logger->log("INIT THE HEADER AUTH: ".$config["username_header_key"]);
-        $this->username_header_key = strtolower($config["username_header_key"]);
-        $this->fullname_header_key = strtolower($config["fullname_header_key"]);
+        $this->username_header_key = $config["username_header_key"];
+        $this->fullname_header_key = $config["fullname_header_key"];
         $this->ignore_users = $config["ignore_users"] ?? [];
         $this->user_defaults = $config["user_defaults"] ?? [];
     }
@@ -40,10 +39,9 @@ class Header extends JsonFile
 
     private function headerUser(): array
     {
-        $this->logger->log(implode("::", getallheaders()));
-        $headers = getallheaders()->getArrayCopy();
-        array_change_key_case($headers, CASE_LOWER);
-        $this->logger->log(implode("++", $headers));
+        $headers = getallheaders();
+        $age = array("PeterZZZ"=>"35","BeNNy"=>"37","JoeEEeeEE"=>"43");
+        $this->logger->log(implode("", array_change_key_case($age, CASE_LOWER)));
         $header_username_exists = array_key_exists($this->username_header_key, $headers);
         $header_fullname_exists = array_key_exists($this->fullname_header_key, $headers);
 
