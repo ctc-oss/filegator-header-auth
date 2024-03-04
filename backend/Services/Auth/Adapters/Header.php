@@ -42,22 +42,22 @@ class Header extends JsonFile
     private function headerUser(): array
     {
         $headers = array_change_key_case(getallheaders(), CASE_LOWER);
-        $this->logger->debug($headers);
+        $this->logger->log($headers);
         $header_username_exists = array_key_exists($this->username_header_key, $headers);
         $header_fullname_exists = array_key_exists($this->fullname_header_key, $headers);
 
         if (!$header_username_exists) {
-            $this->logger->error(print_r($this->username_header_key." header is not set", true));
+            $this->logger->log(print_r($this->username_header_key." header is not set", true));
         }
         if (!$header_fullname_exists) {
-            $this->logger->error(print_r($this->fullname_header_key." header is not set", true));
+            $this->logger->log(print_r($this->fullname_header_key." header is not set", true));
         }
         if (!$header_username_exists || !$header_fullname_exists) return null;
 
         $username_header = $headers[$this->username_header_key];
         $fullname_header = $headers[$this->fullname_header_key];
-        $this->logger->error("USERNAME: ".$username_header);
-        $this->logger->error("FULLNAME: ".$fullname_header);
+        $this->logger->log("USERNAME: ".$username_header);
+        $this->logger->log("FULLNAME: ".$fullname_header);
 
         if(!isset($username_header) || empty($username_header)) return null;
         if(!isset($fullname_header) || empty($fullname_header)) return null;
