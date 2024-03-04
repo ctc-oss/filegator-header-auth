@@ -9,6 +9,7 @@ namespace Filegator\Services\Auth\Adapters;
 
 use Filegator\Services\Auth\Adapters\JsonFile;
 use Filegator\Services\Auth\User;
+use Filegator\Services\Logger\LoggerInterface;
 
 class Header extends JsonFile
 {
@@ -16,14 +17,21 @@ class Header extends JsonFile
     protected $fullname_header_key;
     protected $non_header_users;
     protected $user_defaults;
-    
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
     public function init(array $config = [])
     {
         parent::init($config);
+        $this->logger->log("INIT THE HEADER AUTH: ".$config["username_header_key"]);
         $this->username_header_key = strtolower($config["username_header_key"]);
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
         $this->user_defaults = $config["user_defaults"] ?? [];
+
     }
 
     private function useNormalAuth($username): bool
@@ -89,7 +97,7 @@ class Header extends JsonFile
     public function user(): ?User
     {
         if (! $this->session) return null;
-        
+
         $user = $this->session->get(self::SESSION_KEY, null);
         if (! $user) return null;
 
