@@ -31,8 +31,6 @@ class Header extends JsonFile
         $this->fullname_header_key = strtolower($config["fullname_header_key"]);
         $this->ignore_users = $config["ignore_users"] ?? [];
         $this->user_defaults = $config["user_defaults"] ?? [];
-        $this->logger->log(implode("--", $this));
-
     }
 
     private function useNormalAuth($username): bool
