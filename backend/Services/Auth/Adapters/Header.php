@@ -156,7 +156,7 @@ class Header extends JsonFile
             if ($authenticated) {
                 $authenticated_user = $this->sessionUser();
                 // $this->logger->log("USER:8");
-                $this->logger->log("Authenticated user [".$authenticated_user->getUsername()."] with F5 header");
+                $this->logger->log("Authenticated user [".$authenticated_user->getUsername()."] with ".$this->username_header_key." header");
                 return $authenticated_user;
             }
         }
