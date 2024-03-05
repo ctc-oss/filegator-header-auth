@@ -58,36 +58,38 @@ class Header extends JsonFile
         return $headers;
     }
 
-    private function headerUser(): array
+    private function trimQuotes($value): string
+    {
+        if (! isset($value)) return $value;
+        return trim($value, '\'"');
+    }
+
+    private function headerUser(): ?array
     {
         $headers = array_change_key_case(getallheaders(), CASE_LOWER);
         $cookie_headers = array_change_key_case($this->cookieHeaders($headers), CASE_LOWER);
         $username_header_key = strtolower($this->username_header_key);
         $fullname_header_key = strtolower($this->fullname_header_key);
-        // $this->logger->log("HEADERS:");
-        // $this->logger->log(json_encode($headers));
-        // $this->logger->log("COOKIEHEADERS:");
-        // $this->logger->log(json_encode($cookie_headers));
         $header_username_exists = (array_key_exists($username_header_key, $headers) or array_key_exists($username_header_key, $cookie_headers));
         $header_fullname_exists = (array_key_exists($fullname_header_key, $headers) or array_key_exists($fullname_header_key, $cookie_headers));
 
         if (!$header_username_exists) {
             $this->logger->log($this->username_header_key." username header is not set");
+            return null;
         }
         if (!$header_fullname_exists) {
-            $this->logger->log($this->fullname_header_key." full name header is not set");
+            $this->logger->log($this->fullname_header_key." full name header is not set, falling back to username header");
         }
-        if (!$header_username_exists || !$header_fullname_exists) return null;
 
         $username_header = $headers[$username_header_key] ?? $cookie_headers[$username_header_key];
-        $fullname_header = $headers[$fullname_header_key] ?? $cookie_headers[$fullname_header_key];
+        $fullname_header = $headers[$fullname_header_key] ?? $cookie_headers[$fullname_header_key] ?? $username_header;
 
         if(!isset($username_header) || empty($username_header)) return null;
         if(!isset($fullname_header) || empty($fullname_header)) return null;
 
         return [
-            "username" => $username_header,
-            "name" => $fullname_header,
+            "username" => $this->trimQuotes($username_header),
+            "name" => $this->trimQuotes($fullname_header),
             "role" => $this->user_defaults["role"] ?? "user",
             "homedir" => $this->user_defaults["homedir"] ?? "/share",
             "permissions" => $this->user_defaults["permissions"] ?? "read",
@@ -99,32 +101,35 @@ class Header extends JsonFile
         return $user->getHomedir().$user->getRole().$user->getUsername();
     }
 
+    private function setSessionHash($user) {
+        $this->session->set(self::SESSION_HASH, $this->userHash($user));
+    }
+
     public function authenticate($username, $password): bool
     {
         if ($this->useNormalAuth($username)) {
-            $this->logger->log("** ".$username." user is configured to use normal authentication, skipping header auth");
-            return parent::authenticate($username, $password);
+            $this->logger->log("** [".$username."] user is configured to use normal authentication, skipping header auth");
+            $authenticated = parent::authenticate($username, $password);
+            if ($authenticated) {
+                $authenticated_user = parent::user();
+                if (isset($authenticated_user)) {
+                    $this->setSessionHash($authenticated_user);
+                }
+            }
+            return $authenticated;
         }
 
         $header_user = $this->headerUser();
         if (!isset($header_user)) return false;
 
-        // $this->logger->log("HEADERUSER:");
-        // $this->logger->log(json_encode($header_user));
-
         $existing_user = $this->find($header_user["username"]);
-        // $this->logger->log("EXISTINGUSER:");
-        // $this->logger->log(json_encode($existing_user));
         if (!isset($existing_user)) {
-            // $this->logger->log("CREATENEWUSER");
             $new_user = $this->mapToUserObject($header_user);
             $existing_user = $this->add($new_user, ""); // Password isn't used
         }
 
-        // $this->logger->log("EXISTINGUSER2:");
-        // $this->logger->log(json_encode($existing_user));
         $this->store($existing_user);
-        $this->session->set(self::SESSION_HASH, $this->userHash($existing_user));
+        $this->setSessionHash($existing_user);
         return true;
     }
 
@@ -134,51 +139,25 @@ class Header extends JsonFile
 
     public function user(): ?User
     {
-        // $this->logger->log("USER:1");
         if (! $this->session) return null;
-        // $this->logger->log("USER:2");
 
         $session_user = $this->sessionUser();
-        // $this->logger->log("USER:3");
-        if ($session_user) {
-            // $this->logger->log("USER:4");
+        if (isset($session_user)) {
             $hash = $this->session->get(self::SESSION_HASH, null);
             return ($hash == $this->userHash($session_user)) ? $session_user : null;
         }
 
-        // $this->logger->log("USER:5");
         $header_user = $this->headerUser();
-        if ($header_user) {
-            // $this->logger->log("USER:6");
+        if (isset($header_user)) {
             $header_username = $header_user["username"];
             $authenticated = $this->authenticate($header_username, "");
-            // $this->logger->log("USER:7");
             if ($authenticated) {
                 $authenticated_user = $this->sessionUser();
-                // $this->logger->log("USER:8");
                 $this->logger->log("Authenticated user [".$authenticated_user->getUsername()."] with ".$this->username_header_key." header");
                 return $authenticated_user;
             }
         }
 
-        $this->logger->log("USER:7");
         return null;
-
-        // if ($this->useNormalAuth($user->getUsername())) return parent::user();
-        // $this->logger->log("USER:3");
-        // if (! $user) return null;
-        // $this->logger->log("USER:4");
-
-        // if ($this->useNormalAuth($user->getUsername())) return parent::user();
-        // $this->logger->log("USER:5");
-
-        // $existing_user = $this->find($user->getUsername());
-        // $this->logger->log("USER:6");
-        // if (! $existing_user) return null;
-        // $this->logger->log("USER:7");
-
-        // $hash = $this->session->get(self::SESSION_HASH, null);
-        // $this->logger->log("USER:8");
-        // return ($hash == $this->userHash($existing_user)) ? $user : null;
     }
 }
